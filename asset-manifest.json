@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/damin-dataset/static/css/main.43ca53b7.css",
+    "main.js": "/damin-dataset/static/js/main.c480ec57.js",
+    "index.html": "/damin-dataset/index.html",
+    "main.43ca53b7.css.map": "/damin-dataset/static/css/main.43ca53b7.css.map",
+    "main.c480ec57.js.map": "/damin-dataset/static/js/main.c480ec57.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.43ca53b7.css",
+    "static/js/main.c480ec57.js"
+  ]
+}
