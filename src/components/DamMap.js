@@ -87,6 +87,11 @@ function DamMap({ dams }) {
     fill: false, // No fill color
   };
 
+  const handleClosePanel = () => {
+    setSelectedDam(null);
+    setGeoJsonData(null);
+    setSearchTerm(""); // Clear search term
+    }
   return (
     <div className="app-layout">
       <header className="header">
@@ -150,10 +155,7 @@ function DamMap({ dams }) {
           dam={selectedDam}
           geoJsonData={geoJsonData}
           open={!!selectedDam}
-          onClose={() => {
-            setSelectedDam(null);
-            setGeoJsonData(null);
-          }}
+          onClose={handleClosePanel}
         />
       </div>
     </div>
