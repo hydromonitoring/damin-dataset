@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import React, { useState, useEffect } from "react";
+import { MapContainer, TileLayer, Marker, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import DamDetailsPanel from "./DamDetailsPanel";
 import ZoomToGeoJson from "./ZoomToGeoJson";
@@ -17,11 +17,13 @@ function DamMap({ dams }) {
   const [geoJsonData, setGeoJsonData] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBasin, setSelectedBasin] = useState("All");
+  const [indiaBoundary, setIndiaBoundary] = useState(null); // State for India boundary GeoJSON
 
   const basins = [
     "All",
     ...Array.from(new Set(dams.map((d) => d["River basin name"])).values()),
   ];
+
   // Filtered dams
   const filteredDams = dams.filter((dam) => {
     const matchesName = dam["Dam Name"]
@@ -32,15 +34,38 @@ function DamMap({ dams }) {
     return matchesName && matchesBasin;
   });
 
+  // Fetch India boundary GeoJSON on mount
+  useEffect(() => {
+    const fetchIndiaBoundary = async () => {
+      try {
+        const response = await fetch(
+          "https://saran-sir.s3.ap-south-1.amazonaws.com/india_boundary_line.geojson"
+        );
+        if (response.ok) {
+          const boundaryData = await response.json();
+          setIndiaBoundary(boundaryData);
+        } else {
+          console.error("Failed to fetch India boundary GeoJSON");
+        }
+      } catch (error) {
+        console.error("Error fetching India boundary GeoJSON:", error);
+      }
+    };
+
+    fetchIndiaBoundary();
+  }, []);
+
   // Fetch GeoJSON & select dam
   const handleDamSelect = async (dam) => {
     setSelectedDam(dam);
     setGeoJsonData(null); // Clear previous polygon immediately for better UX
-    
+
     if (!dam["Dam ID (as per NRLD)"]) return;
-    
+
     try {
-      const resp = await fetch(`https://saran-sir.s3.ap-south-1.amazonaws.com/shapefiles_damin/${dam["Dam ID (as per NRLD)"]}.geojson`);
+      const resp = await fetch(
+        `https://saran-sir.s3.ap-south-1.amazonaws.com/shapefiles_damin/${dam["Dam ID (as per NRLD)"]}.geojson`
+      );
       if (resp.ok) {
         const json = await resp.json();
         const geoData = json.geojson ? json.geojson : json;
@@ -53,6 +78,13 @@ function DamMap({ dams }) {
       console.error("Error fetching GeoJSON:", error);
       setGeoJsonData(null);
     }
+  };
+
+  // Define custom style for India boundary (thin black line)
+  const indiaBoundaryStyle = {
+    color: "black", // Line color
+    weight: 0.8, // Line thickness
+    fill: false, // No fill color
   };
 
   return (
@@ -91,6 +123,11 @@ function DamMap({ dams }) {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution="&copy; OpenStreetMap contributors"
             />
+            {/* Render India Boundary GeoJSON */}
+            {indiaBoundary && (
+              <GeoJSON data={indiaBoundary} style={indiaBoundaryStyle} />
+            )}
+
             {filteredDams.map((dam) => {
               const lat = parseFloat(dam["Latitude "]);
               const lng = parseFloat(dam["Longitude"]);
