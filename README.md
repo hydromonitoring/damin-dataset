@@ -2,9 +2,9 @@ Here's a polished and professional `README.md` file based on the steps you provi
 
 ---
 
-# 🌊 WAIN Dataset - Web Interface
+# 🌊 DAMIN Dataset - Web Interface
 
-A simple interface for visualizing and managing the **WAIN Dataset**, focused on hydromonitoring data. This project is built with Node.js and deployed via GitHub Pages.
+A simple interface for visualizing and managing the **DAMIN Dataset**, focused on hydromonitoring data. This project is built with Node.js and deployed via GitHub Pages.
 
 ---
 
@@ -18,7 +18,7 @@ Make sure you have Git installed on your machine.
 
 ```bash
 git clone git@github.com:hydromonitoring/damin-dataset.git
-cd wain-dataset
+cd damin-dataset
 ```
 
 ### 2. Install Dependencies
