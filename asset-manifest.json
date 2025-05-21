@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/damin-dataset/static/css/main.43ca53b7.css",
-    "main.js": "/damin-dataset/static/js/main.7acc4499.js",
+    "main.css": "/damin-dataset/static/css/main.47730633.css",
+    "main.js": "/damin-dataset/static/js/main.d28602bb.js",
     "index.html": "/damin-dataset/index.html",
-    "main.43ca53b7.css.map": "/damin-dataset/static/css/main.43ca53b7.css.map",
-    "main.7acc4499.js.map": "/damin-dataset/static/js/main.7acc4499.js.map"
+    "main.47730633.css.map": "/damin-dataset/static/css/main.47730633.css.map",
+    "main.d28602bb.js.map": "/damin-dataset/static/js/main.d28602bb.js.map"
   },
   "entrypoints": [
-    "static/css/main.43ca53b7.css",
-    "static/js/main.7acc4499.js"
+    "static/css/main.47730633.css",
+    "static/js/main.d28602bb.js"
   ]
 }
