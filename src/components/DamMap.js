@@ -120,7 +120,7 @@ function DamMap({ dams }) {
   return (
     <div className="app-layout">
       <header className="header">
-        <span className="header-title">DamIN Data Set</span>
+        <span className="header-title">DAM-IN Data Set</span>
       </header>
       <div className="toolbar">
         <input
