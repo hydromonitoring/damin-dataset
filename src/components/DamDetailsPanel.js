@@ -184,7 +184,7 @@ function DamDetailsPanel({ dam, geoJsonData, open, onClose }) {
                 {CATEGORIES[tab].keys.map((k) =>
                   dam[k] !== undefined ? (
                     <tr key={k}>
-                      <td style={{fontWeight:"bold", textTransform: "capitalize"}}>{k}</td>
+                      <td style={{fontWeight:"bold"}}>{k}</td>
                       <td>{dam[k]}</td>
                     </tr>
                   ) : null
