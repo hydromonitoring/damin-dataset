@@ -39,13 +39,18 @@ function DamMap({ dams }) {
   });
 
   // Fetch India boundary GeoJSON on mount and set up zoom listener
-  useEffect(() => {
+    useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     const handleZoom = () => setZoom(map.getZoom());
     map.on("zoomend", handleZoom);
 
+    return () => {
+      map.off("zoomend", handleZoom);
+    };
+  }, [])
+  useEffect(() => {
     const fetchIndiaBoundary = async () => {
       try {
         const response = await fetch(
@@ -62,10 +67,6 @@ function DamMap({ dams }) {
       }
     };
     fetchIndiaBoundary();
-
-    return () => {
-      map.off("zoomend", handleZoom);
-    };
   }, []);
 
   // Dynamically size marker based on zoom (smaller when zoomed out)
@@ -107,7 +108,7 @@ function DamMap({ dams }) {
   // Style for India boundary
   const indiaBoundaryStyle = {
     color: "black",
-    weight: 0.8,
+    weight: 0.6,
     fill: false,
   };
 
