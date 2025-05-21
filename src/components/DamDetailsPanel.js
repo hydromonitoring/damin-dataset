@@ -1,38 +1,101 @@
 import React, { useState } from "react";
 
 const CATEGORIES = [
-  { label: "Overview", keys: [
-    "Dam ID (as per NRLD)", "Dam Name", "River basin name", "Latitude ", "Longitude", 
-    "area (km2)", "perimeter (km)", "circularity ratio"
-  ]},
-  { label: "Topographical", keys: [
-    "Minimum elvation (m) ", "Maximum elevation (m)", "Mean elevation (m)", "Mean slope (m/km)"
-  ]},
-  { label: "Climatic", keys: [
-    "Mean precipitation rate (mm/day)", "Maximum Tempearture (0C)", "Minimum Temperature ( 0C)", 
-    "Mean Temperature ( 0C)", "High precipitation frequency (days/year)", 
-    "Low precipitation frequency (days/year)", "High precipitation season", "Low precipitation season", 
-    "High precipitation spell (days)", "Low precipitation spell (days)", "Aridity Index", "Seasonality",
-    "Maximum Wind Speed (m/s)", "Evaporation (mm/day)", "PET (mm/day)", "1 day Maximum Precipitation (mm)"
-  ]},
-  { label: "Geological", keys: [
-    "Dominant lithological class", "Area covered by dominant lithological class", 
-    "Second dominant lithological class", "Area covered by second dominant lithological class", 
-    "subsurface permeability (m2, logscale)", "subsurface porosity", "groundwater mean level (m)"
-  ]},
-  { label: "LULC", keys: [
-    "Dominant LULC class", "Fraction of Buildup ", "Fraction of agriculture", 
-    "Fraction of Forest", "Fraction of Grassland", "Fraction of Scrub", "Fraction of water ", 
-    "NDVI DJF", "NDVI MAM", "NDVI JJA", "NDVI SON"
-  ]},
-  { label: "Soil", keys: [
-    "Coarse content (volume,%)", "Sand content (%)", "Silt content (%)", "Clay content (%)", 
-    "Organic carbon content (g/kg)", "AWC (mm)", "Conductivity (mm/day)", "Porosity", 
-    "Maximum water content (m)", "bulk density (kg m-3 )"
-  ]},
-  { label: "Human Activity", keys: [
-    "road density (m/km2)", "population", "human_footprint", "stable light"
-  ]}
+  {
+    label: "Overview",
+    keys: [
+      "Dam ID (As per NRLD)",
+      "Dam Name",
+      "River Basin Name",
+      "Latitude (°)",
+      "Longitude (°)",
+      "Area (km²)",
+      "Perimeter (km)",
+      "Circularity Ratio"
+    ]
+  },
+  {
+    label: "Topographical",
+    keys: [
+      "Minimum Elevation (m)",
+      "Maximum Elevation (m)",
+      "Mean Elevation (m)",
+      "Mean Slope (m/km)"
+    ]
+  },
+  {
+    label: "Climatic",
+    keys: [
+      "Mean Precipitation Rate (mm/day)",
+      "Maximum Temperature (°C)",
+      "Minimum Temperature (°C)",
+      "Mean Temperature (°C)",
+      "High Precipitation Frequency (days/year)",
+      "Low Precipitation Frequency (days/year)",
+      "High Precipitation Season",
+      "Low Precipitation Season",
+      "High Precipitation Spell (days)",
+      "Low Precipitation Spell (days)",
+      "Aridity Index",
+      "Seasonality",
+      "Maximum Wind Speed (m/s)",
+      "Evaporation (mm/day)",
+      "PET (mm/day)",
+      "1-Day Maximum Precipitation (mm)"
+    ]
+  },
+  {
+    label: "Geological",
+    keys: [
+      "Dominant Lithological Class",
+      "Area Covered by Dominant Lithological Class",
+      "Second Dominant Lithological Class",
+      "Area Covered by Second Dominant Lithological Class",
+      "Subsurface Permeability (m², log scale)",
+      "Subsurface Porosity",
+      "Groundwater Mean Level (m)"
+    ]
+  },
+  {
+    label: "LULC",
+    keys: [
+      "Dominant LULC Class",
+      "Fraction of Buildup",
+      "Fraction of Agriculture",
+      "Fraction of Forest",
+      "Fraction of Grassland",
+      "Fraction of Scrub",
+      "Fraction of Water",
+      "NDVI (DJF)",
+      "NDVI (MAM)",
+      "NDVI (JJA)",
+      "NDVI (SON)"
+    ]
+  },
+  {
+    label: "Soil",
+    keys: [
+      "Coarse Content (vol. %)",
+      "Sand Content (%)",
+      "Silt Content (%)",
+      "Clay Content (%)",
+      "Organic Carbon Content (g/kg)",
+      "AWC (mm)",
+      "Conductivity (mm/day)",
+      "Porosity",
+      "Maximum Water Content (m)",
+      "Bulk Density (kg/m³)"
+    ]
+  },
+  {
+    label: "Human Activity",
+    keys: [
+      "Road Density (m/km²)",
+      "Population",
+      "Human Footprint",
+      "Stable Light"
+    ]
+  }
 ];
 
 
@@ -60,6 +123,7 @@ function exportCategoryAsJSON(dam, geoJsonData, tab) {
 function DamDetailsPanel({ dam, geoJsonData, open, onClose }) {
   const [tab, setTab] = useState(0);
 
+  console.log(dam)
   return (
     <div className={`sidebar-details${open ? " open" : ""}`}>
       <button className="sidebar-close-btn" onClick={onClose}>×</button>
@@ -91,13 +155,36 @@ function DamDetailsPanel({ dam, geoJsonData, open, onClose }) {
                 }}>
                 Export {CATEGORIES[tab].label} {tab === 0 ? "(+Shapefile)" : ""}
               </button>
+              {/* DAM Report Button */}
+              <a
+                href={`https://hydromonitoring.github.io/damin-reports/${encodeURIComponent(
+                  (dam["River Basin Name"] || "").replace(/ /g, "_")
+                )}/${encodeURIComponent(
+                  (dam["Dam Name"] || "").replace(/ /g, "_")
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  marginLeft: 10,
+                  background: "#388e3c",
+                  color: "#fff",
+                  padding: "7px 18px",
+                  border: "none",
+                  borderRadius: 6,
+                  textDecoration: "none",
+                  cursor: "pointer"
+                }}
+              >
+                DAM Report
+                </a>
             </div>
             <table>
               <tbody>
                 {CATEGORIES[tab].keys.map((k) =>
                   dam[k] !== undefined ? (
                     <tr key={k}>
-                      <td style={{fontWeight:"bold"}}>{k}</td>
+                      <td style={{fontWeight:"bold", textTransform: "capitalize"}}>{k}</td>
                       <td>{dam[k]}</td>
                     </tr>
                   ) : null
