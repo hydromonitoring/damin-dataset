@@ -19,6 +19,7 @@ function DamMap({ dams }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBasin, setSelectedBasin] = useState("All");
   const [indiaBoundary, setIndiaBoundary] = useState(null);
+  const [basinGeoJson, setBasinGeoJson] = useState(null); // <-- NEW STATE
   const [zoom, setZoom] = useState(5);
 
   const mapRef = useRef();
@@ -39,7 +40,7 @@ function DamMap({ dams }) {
   });
 
   // Fetch India boundary GeoJSON on mount and set up zoom listener
-    useEffect(() => {
+  useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
@@ -49,7 +50,8 @@ function DamMap({ dams }) {
     return () => {
       map.off("zoomend", handleZoom);
     };
-  }, [])
+  }, []);
+
   useEffect(() => {
     const fetchIndiaBoundary = async () => {
       try {
@@ -68,6 +70,31 @@ function DamMap({ dams }) {
     };
     fetchIndiaBoundary();
   }, []);
+
+  // Fetch river basin GeoJSON when selectedBasin changes
+  useEffect(() => {
+    if (selectedBasin === "All") {
+      setBasinGeoJson(null);
+      return;
+    }
+    const fetchBasinGeoJson = async () => {
+      try {
+        const url =
+          "https://hydromonitoring-lab-datasets.s3.ap-south-1.amazonaws.com/river_basin_geojson/" +
+          encodeURIComponent(selectedBasin)+".geojson";
+        const response = await fetch(url);
+        if (response.ok) {
+          const geojson = await response.json();
+          setBasinGeoJson(geojson);
+        } else {
+          setBasinGeoJson(null);
+        }
+      } catch (error) {
+        setBasinGeoJson(null);
+      }
+    };
+    fetchBasinGeoJson();
+  }, [selectedBasin]);
 
   // Dynamically size marker based on zoom (smaller when zoomed out)
   function getMarkerIcon(zoom) {
@@ -161,6 +188,18 @@ function DamMap({ dams }) {
             {/* Render India Boundary GeoJSON */}
             {indiaBoundary && (
               <GeoJSON data={indiaBoundary} style={indiaBoundaryStyle} />
+            )}
+            {/* Render selected basin GeoJSON */}
+            {basinGeoJson && (
+              <GeoJSON
+                data={basinGeoJson}
+                style={{
+                  color: "#ff9800",
+                  weight: 2,
+                  fillOpacity: 0.08,
+                  fillColor: "#ff9800",
+                }}
+              />
             )}
 
             <MarkerClusterGroup chunkedLoading>

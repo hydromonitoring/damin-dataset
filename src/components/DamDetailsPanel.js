@@ -123,7 +123,6 @@ function exportCategoryAsJSON(dam, geoJsonData, tab) {
 function DamDetailsPanel({ dam, geoJsonData, open, onClose }) {
   const [tab, setTab] = useState(0);
 
-  console.log(dam)
   return (
     <div className={`sidebar-details${open ? " open" : ""}`}>
       <button className="sidebar-close-btn" onClick={onClose}>×</button>
