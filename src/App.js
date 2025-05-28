@@ -8,7 +8,7 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    readExcelFile(process.env.PUBLIC_URL + "/data.xlsx").then((rows) => {
+    readExcelFile(process.env.PUBLIC_URL + "/dams_damin.xlsx").then((rows) => {
       setDams(rows);
       setLoading(false);
     });

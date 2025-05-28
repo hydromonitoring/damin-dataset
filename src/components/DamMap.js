@@ -1,17 +1,86 @@
-import React, { useState, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, GeoJSON } from "react-leaflet";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  GeoJSON,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import DamDetailsPanel from "./DamDetailsPanel";
-import ZoomToGeoJson from "./ZoomToGeoJson";
 import "leaflet/dist/leaflet.css";
 import MarkerClusterGroup from "react-leaflet-cluster";
 
-// Small circular marker icon
-const circleMarkerIcon = L.divIcon({
-  className: "custom-circle-marker",
-  iconSize: [12, 12],
-  html: '<div></div>',
-});
+// Default map center and zoom
+const DEFAULT_CENTER = [22.5, 78.9];
+const DEFAULT_ZOOM = 5;
+
+// This component accesses the map instance directly
+// It handles all map operations in a reliable way
+function MapController({
+  selectedDam,
+  selectedBasin,
+  basinGeoJson,
+  geoJsonData,
+  resetMapFlag,
+  setResetMapFlag,
+}) {
+  const map = useMap();
+
+  // Effect to handle dam selection zoom
+  useEffect(() => {
+    if (geoJsonData && selectedDam) {
+      try {
+        const geoJsonLayer = L.geoJSON(geoJsonData);
+        const bounds = geoJsonLayer.getBounds();
+        if (bounds.isValid()) {
+          const sidebar = document.querySelector(".sidebar-details.open");
+          const sidebarWidth = sidebar ? sidebar.offsetWidth : 350;
+          map.fitBounds(bounds, {
+            paddingTopLeft: [0, 0],
+            paddingBottomRight: [sidebarWidth + 40, 0],
+            maxZoom: 12,
+            animate: true,
+          });
+        }
+      } catch (error) {
+        console.error("Error zooming to dam:", error);
+      }
+    }
+  }, [map, geoJsonData, selectedDam]);
+
+  // Effect to handle basin selection zoom
+  useEffect(() => {
+    if (basinGeoJson && selectedBasin !== "All" && !selectedDam) {
+      try {
+        const geoJsonLayer = L.geoJSON(basinGeoJson);
+        const bounds = geoJsonLayer.getBounds();
+        if (bounds.isValid()) {
+          const sidebar = document.querySelector(".sidebar-details.open");
+          const sidebarWidth = sidebar ? sidebar.offsetWidth : 350;
+          map.fitBounds(bounds, {
+            paddingTopLeft: [0, 0],
+            paddingBottomRight: [sidebarWidth + 40, 0],
+            maxZoom: 8,
+            animate: true,
+          });
+        }
+      } catch (error) {
+        console.error("Error zooming to basin:", error);
+      }
+    }
+  }, [map, basinGeoJson, selectedBasin, selectedDam]);
+
+  // Effect to handle reset map view
+  useEffect(() => {
+    if (resetMapFlag) {
+      map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+      setResetMapFlag(false);
+    }
+  }, [map, resetMapFlag, setResetMapFlag]);
+
+  return null;
+}
 
 function DamMap({ dams }) {
   const [selectedDam, setSelectedDam] = useState(null);
@@ -19,86 +88,113 @@ function DamMap({ dams }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBasin, setSelectedBasin] = useState("All");
   const [indiaBoundary, setIndiaBoundary] = useState(null);
-  const [basinGeoJson, setBasinGeoJson] = useState(null); // <-- NEW STATE
-  const [zoom, setZoom] = useState(5);
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [showOnlyHydro, setShowOnlyHydro] = useState(false);
+  const [basinGeoJson, setBasinGeoJson] = useState(null);
+  const [resetMapFlag, setResetMapFlag] = useState(false);
 
   const mapRef = useRef();
 
-  const basins = [
-    "All",
-    ...Array.from(new Set(dams.map((d) => d["River Basin Name"])).values()),
-  ];
+  const basins = React.useMemo(
+    () => [
+      "All",
+      ...Array.from(new Set(dams.map((d) => d["River Basin Name"] || "")))
+        .filter(Boolean)
+        .sort(),
+    ],
+    [dams]
+  );
 
   // Filtered dams
-  const filteredDams = dams.filter((dam) => {
-    const matchesName = dam["Dam Name"]
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesBasin =
-      selectedBasin === "All" || dam["River Basin Name"] === selectedBasin;
-    return matchesName && matchesBasin;
-  });
+  const filteredDams = React.useMemo(
+    () =>
+      dams.filter((dam) => {
+        const matchesName =
+          dam["Dam Name"]
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) || false;
+        const matchesBasin =
+          selectedBasin === "All" || dam["River Basin Name"] === selectedBasin;
+        return matchesName && matchesBasin;
+      }),
+    [dams, searchTerm, selectedBasin, showOnlyHydro]
+  );
 
-  // Fetch India boundary GeoJSON on mount and set up zoom listener
+  // Fetch India boundary GeoJSON on mount
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const handleZoom = () => setZoom(map.getZoom());
-    map.on("zoomend", handleZoom);
-
-    return () => {
-      map.off("zoomend", handleZoom);
-    };
+    fetch(
+      "https://hydromonitoring-lab-datasets.s3.ap-south-1.amazonaws.com/india_boundary_line.geojson"
+    )
+      .then((response) => (response.ok ? response.json() : null))
+      .then((boundaryData) => boundaryData && setIndiaBoundary(boundaryData))
+      .catch((error) => console.error("Error fetching India boundary:", error));
   }, []);
 
-  useEffect(() => {
-    const fetchIndiaBoundary = async () => {
-      try {
-        const response = await fetch(
-          "https://hydromonitoring-lab-datasets.s3.ap-south-1.amazonaws.com/india_boundary_line.geojson"
-        );
-        if (response.ok) {
-          const boundaryData = await response.json();
-          setIndiaBoundary(boundaryData);
-        } else {
-          console.error("Failed to fetch India boundary GeoJSON");
-        }
-      } catch (error) {
-        console.error("Error fetching India boundary GeoJSON:", error);
-      }
-    };
-    fetchIndiaBoundary();
-  }, []);
+  // Handle basin selection
+  const handleBasinChange = useCallback(async (basinName) => {
+    // Clear the current basin GeoJSON data immediately
+    setBasinGeoJson(null);
+    setSelectedBasin(basinName);
 
-  // Fetch river basin GeoJSON when selectedBasin changes
-  useEffect(() => {
-    if (selectedBasin === "All") {
-      setBasinGeoJson(null);
+    if (!basinName || basinName === "All") {
+      setResetMapFlag(true);
       return;
     }
-    const fetchBasinGeoJson = async () => {
-      try {
-        const url =
-          "https://hydromonitoring-lab-datasets.s3.ap-south-1.amazonaws.com/river_basin_geojson/" +
-          encodeURIComponent(selectedBasin)+".geojson";
-        const response = await fetch(url);
-        if (response.ok) {
-          const geojson = await response.json();
-          setBasinGeoJson(geojson);
-        } else {
-          setBasinGeoJson(null);
-        }
-      } catch (error) {
-        setBasinGeoJson(null);
-      }
-    };
-    fetchBasinGeoJson();
-  }, [selectedBasin]);
 
-  // Dynamically size marker based on zoom (smaller when zoomed out)
+    try {
+      const url = `https://hydromonitoring-lab-datasets.s3.ap-south-1.amazonaws.com/river_basin_geojson/${encodeURIComponent(
+        basinName
+      )}.geojson`;
+
+      console.log(`Fetching basin data for: ${basinName}`);
+      const response = await fetch(url);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Basin data received successfully");
+        setBasinGeoJson(data);
+      } else {
+        console.error(`Failed to fetch basin GeoJSON for ${basinName}`);
+        setResetMapFlag(true);
+      }
+    } catch (error) {
+      console.error("Error fetching basin GeoJSON:", error);
+      setResetMapFlag(true);
+    }
+  }, []);
+
+  // Fetch dam shapefile & select dam
+  const handleDamSelect = useCallback(async (dam) => {
+    setSelectedDam(dam);
+    setGeoJsonData(null);
+
+    if (!dam || !dam["Dam ID (as per NRLD)"]) return;
+
+    try {
+      const url = `https://hydromonitoring-lab-datasets.s3.ap-south-1.amazonaws.com/shapefiles_damin/${dam["Dam ID (as per NRLD)"]}.geojson`;
+      const response = await fetch(url);
+
+      if (response.ok) {
+        const data = await response.json();
+        const geoData = data.geojson ? data.geojson : data;
+        setGeoJsonData(geoData);
+      } else {
+        console.error(`Failed to fetch GeoJSON for dam ${dam["Dam ID (as per NRLD)"]}`);
+      }
+    } catch (error) {
+      console.error("Error fetching dam GeoJSON:", error);
+    }
+  }, []);
+
+  // Handle close panel
+  const handleClosePanel = useCallback(() => {
+    setSelectedDam(null);
+    setGeoJsonData(null);
+    setResetMapFlag(true);
+  }, []);
+
+
   function getMarkerIcon(zoom) {
-    // At zoom 5: size = 6, at zoom 10: size = 16, at zoom 15: size = 18 (max)
     const size = Math.max(6, Math.min(18, (zoom - 2) * 2));
     return L.divIcon({
       className: "custom-circle-marker",
@@ -107,60 +203,22 @@ function DamMap({ dams }) {
     });
   }
 
-  // Fetch GeoJSON & select dam
-  const handleDamSelect = async (dam) => {
-    setSelectedDam(dam);
-    setGeoJsonData(null);
-
-    if (!dam["Dam ID (As per NRLD)"]) return;
-
-    try {
-      const resp = await fetch(
-        `https://hydromonitoring-lab-datasets.s3.ap-south-1.amazonaws.com/shapefiles_damin/${dam["Dam ID (As per NRLD)"]}.geojson`
-      );
-      if (resp.ok) {
-        const json = await resp.json();
-        const geoData = json.geojson ? json.geojson : json;
-        setGeoJsonData(geoData);
-      } else {
-        console.error("Failed to fetch GeoJSON data");
-        setGeoJsonData(null);
-      }
-    } catch (error) {
-      console.error("Error fetching GeoJSON:", error);
-      setGeoJsonData(null);
-    }
-  };
-
-  // Style for India boundary
-  const indiaBoundaryStyle = {
-    color: "black",
-    weight: 0.6,
-    fill: false,
-  };
-
-  const handleClosePanel = () => {
-    setSelectedDam(null);
-    setGeoJsonData(null);
-    setSearchTerm("");
-  };
-
   return (
     <div className="app-layout">
       <header className="header">
-        <span className="header-title">DAM-IN Data Set</span>
+        <span className="header-title">WAIN Data Set</span>
       </header>
       <div className="toolbar">
         <input
           type="text"
-          placeholder="Search dam name..."
+          placeholder="Search Watershed name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="toolbar-input"
         />
         <select
           value={selectedBasin}
-          onChange={(e) => setSelectedBasin(e.target.value)}
+          onChange={(e) => handleBasinChange(e.target.value)}
           className="toolbar-select"
         >
           {basins.map((basin) => (
@@ -173,35 +231,47 @@ function DamMap({ dams }) {
       <div className="main-content">
         <div className="map-container">
           <MapContainer
-            center={[22.5, 78.9]}
-            zoom={5}
+            center={DEFAULT_CENTER}
+            zoom={DEFAULT_ZOOM}
             style={{ height: "100%", width: "100%" }}
-            whenCreated={(mapInstance) => {
-              mapRef.current = mapInstance;
-              setZoom(mapInstance.getZoom());
+            ref={mapRef}
+            whenReady={(map) => {
+              setZoom(map.target.getZoom());
+              map.target.on("zoomend", () => {
+                setZoom(map.target.getZoom());
+              });
             }}
           >
+            <MapController
+              selectedDam={selectedDam}
+              selectedBasin={selectedBasin}
+              basinGeoJson={basinGeoJson}
+              geoJsonData={geoJsonData}
+              resetMapFlag={resetMapFlag}
+              setResetMapFlag={setResetMapFlag}
+            />
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution="&copy; OpenStreetMap contributors"
             />
-            {/* Render India Boundary GeoJSON */}
             {indiaBoundary && (
-              <GeoJSON data={indiaBoundary} style={indiaBoundaryStyle} />
+              <GeoJSON
+                data={indiaBoundary}
+                style={{ color: "black", weight: 0.6, fill: false }}
+              />
             )}
-            {/* Render selected basin GeoJSON */}
             {basinGeoJson && (
               <GeoJSON
                 data={basinGeoJson}
-                style={{
-                  color: "#ff9800",
-                  weight: 2,
-                  fillOpacity: 0.08,
-                  fillColor: "#ff9800",
-                }}
+                style={{ color: "#ff9800", weight: 2, fillOpacity: 0.1 }}
               />
             )}
-
+            {geoJsonData && (
+              <GeoJSON
+                data={geoJsonData}
+                style={{ color: "#e91e63", weight: 3, fillOpacity: 0.2 }}
+              />
+            )}
             <MarkerClusterGroup chunkedLoading>
               {filteredDams.map((dam) => {
                 const lat = parseFloat(dam["Latitude (°)"]);
@@ -209,7 +279,7 @@ function DamMap({ dams }) {
                 if (!lat || !lng) return null;
                 return (
                   <Marker
-                    key={dam["Dam ID (As per NRLD)"]}
+                    key={dam["Dam ID (as per NRLD)"] || `${lat}-${lng}`}
                     position={[lat, lng]}
                     icon={getMarkerIcon(zoom)}
                     eventHandlers={{
@@ -219,7 +289,6 @@ function DamMap({ dams }) {
                 );
               })}
             </MarkerClusterGroup>
-            {geoJsonData && <ZoomToGeoJson geoJsonData={geoJsonData} />}
           </MapContainer>
         </div>
         <DamDetailsPanel
