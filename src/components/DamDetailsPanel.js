@@ -162,7 +162,7 @@ function DamDetailsPanel({ dam, geoJsonData, open, onClose }) {
                   (dam["Dam Name"] || "").replace(/ /g, "_")
                 )}`}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="noopener"
                 style={{
                   display: "inline-block",
                   marginLeft: 10,
